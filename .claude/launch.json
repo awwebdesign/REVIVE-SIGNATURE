@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "revive-signature", "runtimeExecutable": "node", "runtimeArgs": [".claude/serve.js", ".", "8327"], "port": 8327 }
+  ]
+}
