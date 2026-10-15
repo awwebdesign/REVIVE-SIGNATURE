@@ -118,7 +118,7 @@
         if (fg) {
           const gl = Math.min(1, glow * 1.8);
           let r = r0 + (239 - r0) * gl, g = g0 + (233 - g0) * gl, b = b0 + (221 - b0) * gl;
-          if (hv > 0) { r += (210 - r) * hv; g += (85 - g) * hv; b += (42 - b) * hv; }
+          if (hv > 0) { r += (227 - r) * hv; g += (176 - g) * hv; b += (92 - b) * hv; }
           ctx.strokeStyle = `rgb(${r | 0},${g | 0},${b | 0})`;
           ctx.lineWidth = o.lw * (1 + gl * 0.5);
         } else {
@@ -186,24 +186,9 @@
     if (h.length > 1) history.replaceState(null, '', h);
   }));
 
-  /* ---------------------------------------------------------------- header + menu */
-  const top = $('.top'), burger = $('.top-burger'), menu = $('#menu');
-  const onScroll = () => top.classList.toggle('solid', (lenis ? lenis.scroll : scrollY) > 40);
-  if (lenis) lenis.on('scroll', onScroll); else addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-  function closeMenu() {
-    if (!html.classList.contains('menu-open')) return;
-    html.classList.remove('menu-open'); menu.inert = true;
-    burger.setAttribute('aria-expanded', 'false'); burger.setAttribute('aria-label', 'Menu openen');
-    if (lenis) lenis.start();
-  }
-  burger.addEventListener('click', () => {
-    if (html.classList.contains('menu-open')) return closeMenu();
-    html.classList.add('menu-open'); menu.inert = false;
-    burger.setAttribute('aria-expanded', 'true'); burger.setAttribute('aria-label', 'Menu sluiten');
-    if (lenis) lenis.stop();
-  });
-  addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+  /* ---------------------------------------------------------------- header + menu (nav.js) */
+  const closeMenu = () => window.reviveNav && window.reviveNav.close();
+  document.addEventListener('revive:menu', (e) => { if (lenis) e.detail.open ? lenis.stop() : lenis.start(); });
 
   /* ---------------------------------------------------------------- 01 hero */
   const heroEl = $('.hero'), heroCv = $('.hero-fibers'), heroStatic = $('.hero-static');
@@ -255,36 +240,43 @@
   }
 
   /* ---------------------------------------------------------------- 02 body map */
+  // Two steps: tap where it's stuck (front or back, one or more zones), then tick one or more treatments.
+  // Zones only suggest; nothing is chosen for the visitor.
   const ZONES = {
-    nek: { label: 'Nek', title: 'Vast in je nek?', when: 'Lange dagen achter een scherm, stress die zich vastzet, zwaar trek- en duwwerk.', fit: ['bovenlichaam', 'deep'], quote: ['Geblokkeerde schouder/nek volledig verholpen.', 'Kim d’Haenens'], spots: [[120, 76]], r: 20 },
-    schouders: { label: 'Schouders', title: 'Vast in je schouders?', when: 'Overhead trainen, zwemmen, vechtsport of werken boven je hoofd.', fit: ['bovenlichaam', 'cupping'], quote: ['Geblokkeerde schouder/nek volledig verholpen.', 'Kim d’Haenens'], spots: [[68, 122], [172, 122]], r: 24 },
-    bovenrug: { label: 'Bovenrug', title: 'Vast tussen je schouderbladen?', when: 'Veel zitten, rijden of tillen, en een houding die je de hele dag aanhoudt.', fit: ['bovenlichaam', 'deep', 'cupping'], spots: [[120, 158]], r: 32 },
-    onderrug: { label: 'Onderrug', title: 'Vast in je onderrug?', when: 'Tillen op de werf, deadlifts, lang rechtstaan of net lang stilzitten.', fit: ['deep', 'fullbody'], quote: ['Sinds ik mijn rug laat behandelen gaat alles stukken beter.', 'Mille Pelacuer'], spots: [[120, 234]], r: 32 },
-    heupen: { label: 'Heupen & bilspieren', title: 'Vast in je heupen?', when: 'Lopen, fietsen, squatten of uren in de auto.', fit: ['benen', 'fullbody'], spots: [[98, 292], [142, 292]], r: 26 },
-    hamstrings: { label: 'Hamstrings', title: 'Vast achter je dijen?', when: 'Sprinten, voetbal, lopen, en spieren die kort aanvoelen na een dag zitten.', fit: ['benen'], spots: [[97, 362], [143, 362]], r: 24 },
-    kuiten: { label: 'Kuiten', title: 'Vast in je kuiten?', when: 'Kilometers lopen, springen of de hele dag rechtstaan.', fit: ['benen', 'cupping'], spots: [[94, 440], [146, 440]], r: 21 },
-    onderarmen: { label: 'Onderarmen', title: 'Vast in je onderarmen?', when: 'Grip en klimwerk, gereedschap, typen en de muis.', fit: ['bovenlichaam'], spots: [[25, 252], [215, 252]], r: 19 },
+    nek: { side: 'back', label: 'Nek', fit: ['bovenlichaam', 'deep'], spots: [[120, 76]], r: 20 },
+    schouders: { side: 'back', label: 'Schouders', fit: ['bovenlichaam', 'cupping'], spots: [[68, 122], [172, 122]], r: 24 },
+    bovenrug: { side: 'back', label: 'Bovenrug', fit: ['bovenlichaam', 'deep', 'cupping'], spots: [[120, 158]], r: 32 },
+    onderrug: { side: 'back', label: 'Onderrug', fit: ['deep', 'fullbody'], spots: [[120, 234]], r: 32 },
+    bilspieren: { side: 'back', label: 'Bilspieren', fit: ['benen', 'fullbody'], spots: [[98, 292], [142, 292]], r: 26 },
+    hamstrings: { side: 'back', label: 'Hamstrings', fit: ['benen'], spots: [[97, 362], [143, 362]], r: 24 },
+    kuiten: { side: 'back', label: 'Kuiten', fit: ['benen', 'cupping'], spots: [[94, 440], [146, 440]], r: 21 },
+    onderarmen: { side: 'back', label: 'Onderarmen', fit: ['bovenlichaam'], spots: [[25, 252], [215, 252]], r: 19 },
+    borst: { side: 'front', label: 'Borst', fit: ['bovenlichaam'], spots: [[96, 148], [144, 148]], r: 26 },
+    voorschouders: { side: 'front', label: 'Voorkant schouders', fit: ['bovenlichaam', 'cupping'], spots: [[62, 124], [178, 124]], r: 20 },
+    armen: { side: 'front', label: 'Armen', fit: ['bovenlichaam'], spots: [[40, 174], [200, 174]], r: 18 },
+    buik: { side: 'front', label: 'Buik & core', fit: ['fullbody'], spots: [[120, 222]], r: 28 },
+    heupbuigers: { side: 'front', label: 'Heupbuigers', fit: ['benen', 'deep'], spots: [[100, 278], [140, 278]], r: 20 },
+    bovenbenen: { side: 'front', label: 'Bovenbenen', fit: ['benen', 'fullbody'], spots: [[97, 352], [143, 352]], r: 24 },
+    scheenbenen: { side: 'front', label: 'Scheenbenen', fit: ['benen'], spots: [[95, 442], [145, 442]], r: 18 },
   };
-  const bodyFig = $('.body-fig'), bodyCv = $('.body-fibers'), dotsEl = $('.body-dots'), listEl = $('.zone-list');
-  const hintEl = $('[data-hint]'), hintWrap = $('.body-hint');
-  const body = new Fibers(bodyCv, { rgb: [227, 200, 143] });
-  const panelEmpty = $('.zone-empty'), card = $('.zone-card'), zf = (k) => $(`[data-z="${k}"]`, card);
-  const rub = fine ? 'Masseer het los met je muis' : 'Wrijf het los met je vinger';
-  let cur = null, curId = null, loose = false;
+  const mapEl = $('.map'), bodyFig = $('.body-fig'), bodyCv = $('.body-fibers'), dotsEl = $('.body-dots'), listEl = $('.zone-list');
+  const body = new Fibers(bodyCv, { rgb: [150, 143, 131] });
+  const picked = new Set();
+  let side = 'back';
 
-  // treatment picker: checkboxes, so two or more can be chosen; the zone only suggests
+  // treatment picker: checkboxes, so two or more can be chosen
   const pickEl = $('.pick'), pickSum = $('[data-pick-sum]');
-  const pickBox = (k) => $(`input[value="${k}"]`, pickEl);
-  const PNAME = Object.fromEntries($$('input', pickEl).map((i) => [i.value, $('.pick-name', i.parentElement).textContent]));
   function syncPick() {
-    const on = $$('input', pickEl).filter((i) => i.checked);
+    const zones = [...picked].map((id) => ZONES[id]);
     $$('input', pickEl).forEach((i) => {
-      const tag = $('.pick-tag', i.parentElement), fits = !!cur && cur.fit.includes(i.value);
-      tag.hidden = !fits; if (fits) tag.textContent = `Past bij ${cur.label.toLowerCase()}`;
+      const tag = $('.pick-tag', i.parentElement), hits = zones.filter((z) => z.fit.includes(i.value)).map((z) => z.label.toLowerCase());
+      tag.hidden = !hits.length; if (hits.length) tag.textContent = `Past bij ${hits.join(', ')}`;
     });
-    $$('button[data-pick]', card).forEach((b) => b.setAttribute('aria-pressed', String(pickBox(b.dataset.pick).checked)));
-    const min = on.reduce((t, i) => t + +i.dataset.min, 0);
-    pickSum.textContent = on.length ? `${on.length} aangeduid · ${min} min${on.length > 1 ? ' · in de agenda boek je ze na elkaar' : ''}` : 'Nog niets aangeduid';
+    const on = $$('input', pickEl).filter((i) => i.checked), min = on.reduce((t, i) => t + +i.dataset.min, 0);
+    const parts = [];
+    if (zones.length) parts.push(zones.map((z) => z.label).join(', '));
+    if (on.length) parts.push(`${on.length} ${on.length > 1 ? 'behandelingen' : 'behandeling'} · ${min} min`);
+    pickSum.textContent = parts.join(' · ') || 'Nog niets aangeduid';
     pickEl.classList.toggle('has', on.length > 0);
   }
   pickEl.addEventListener('change', syncPick);
@@ -297,6 +289,7 @@
     const ell = (x, y, rx, ry) => { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, 7); c.fill(); };
     const poly = (p) => { c.beginPath(); p.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.fill(); };
     const both = (fn) => { fn((x) => x); fn((x) => 240 - x); };
+    const curve = (m, x0, y0, cx, cy, x1, y1) => { c.beginPath(); c.moveTo(m(x0), y0); c.quadraticCurveTo(m(cx), cy, m(x1), y1); c.stroke(); };
     ell(120, 38, 23, 29);
     cap(120, 60, 120, 96, 14);
     poly([[104, 82], [136, 82], [182, 106], [190, 124], [50, 124], [58, 106]]);
@@ -305,12 +298,29 @@
     ell(98, 292, 31, 36); ell(142, 292, 31, 36); ell(120, 280, 50, 30);
     both((m) => { cap(m(98), 312, m(95), 404, 24); cap(m(95), 404, m(95), 488, 14); ell(m(93), 438, 18, 32); ell(m(95), 503, 13, 9); });
     c.globalCompositeOperation = 'destination-out';
-    cap(120, 104, 120, 252, 1.1);
-    cap(120, 282, 120, 326, 1.2);
     cap(120, 334, 120, 520, 3);
     c.lineWidth = 1.6;
-    both((m) => { c.beginPath(); c.moveTo(m(86), 130); c.quadraticCurveTo(m(80), 162, m(102), 180); c.stroke(); });
+    if (side === 'back') {
+      cap(120, 104, 120, 252, 1.1);
+      cap(120, 282, 120, 326, 1.2);
+      both((m) => curve(m, 86, 130, 80, 162, 102, 180));
+    } else {
+      // collarbones, the line under the chest, centre line of the belly
+      both((m) => curve(m, 112, 104, 88, 100, 64, 112));
+      both((m) => curve(m, 70, 152, 90, 184, 118, 172));
+      cap(120, 120, 120, 168, 0.9);
+      cap(120, 190, 120, 250, 0.9);
+    }
     c.restore();
+  }
+
+  // the chosen zones on the visible side glow brass
+  function setHeat() {
+    const s = body.s;
+    body.heat = [...picked].map((id) => ZONES[id]).filter((z) => z.side === side)
+      .flatMap((z) => z.spots.map(([x, y]) => ({ x: x * s, y: y * s, r: z.r * s, v: 1 })));
+    body.dirty = true;
+    if (still && html.classList.contains('fib-ready')) body.draw(0);
   }
 
   function layoutBody() {
@@ -318,77 +328,43 @@
     const gap = Math.max(3, Math.round(body.w / 82));
     Object.assign(body.o, { gap, step: 3, lw: Math.max(0.9, gap * 0.42), radius: Math.max(26, body.w * 0.11), push: Math.max(4, body.w * 0.02) });
     body.s = body.w / 240;
-    if (cur) setHeat(true);
-    return body.build((c, w) => drawBody(c, w));
+    const ok = body.build((c, w) => drawBody(c, w));
+    setHeat();
+    return ok;
   }
 
-  function setHeat(keep) {
-    const s = body.s;
-    body.heat = cur.spots.map(([x, y]) => ({ x: x * s, y: y * s, r: cur.r * s, v: 0, h: keep ? 1 : 0, c: 0 }));
-    if (!keep && hasGsap && !still) gsap.to(body.heat, { h: 1, duration: 1, ease: 'power2.out' });
-    else body.heat.forEach((z) => { z.h = 1; z.v = still ? 1 : 0; });
+  function syncZones() {
+    $$('button[data-zone]', mapEl).forEach((b) => b.setAttribute('aria-pressed', String(picked.has(b.dataset.zone))));
+    setHeat(); syncPick();
   }
-
-  function select(id, fromUser) {
-    curId = id; cur = ZONES[id]; loose = false;
-    $$('button', dotsEl).concat($$('button', listEl)).forEach((b) => {
-      b.setAttribute('aria-pressed', String(b.dataset.zone === id)); b.classList.remove('loose');
-    });
-    zf('label').classList.remove('loose');
-    setHeat(false); body.dirty = true;
-    if (still && html.classList.contains('fib-ready')) body.draw(0);
-    zf('label').textContent = cur.label;
-    zf('title').textContent = cur.title;
-    zf('when').textContent = cur.when;
-    zf('start').innerHTML = cur.fit.map((k) => `<button type="button" data-pick="${k}">${PNAME[k]}</button>`).join('');
-    const q = zf('quote');
-    if (cur.quote) { q.hidden = false; q.innerHTML = `“${cur.quote[0]}”<cite>${cur.quote[1]} · Google-review</cite>`; } else q.hidden = true;
-    zf('start').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { const i = pickBox(b.dataset.pick); i.checked = !i.checked; syncPick(); }));
-    syncPick();
-    panelEmpty.hidden = true; card.hidden = false;
-    card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter');
-    hintEl.textContent = still ? cur.label : rub; hintWrap.classList.remove('loose');
-    if (fromUser && innerWidth <= 900) { /* keep the panel in view on phones */ }
-  }
-
-  // rubbing over a hot zone cools it; when it's cool, the zone is "los"
-  body.pre = (dt) => {
-    if (!cur || loose || !body.heat.length) return;
-    let warm = 0;
-    for (const z of body.heat) {
-      for (const p of body.trail) {
-        if (p.life < 0.6) continue;
-        const d = Math.hypot(p.x - z.x, p.y - z.y);
-        if (d < z.r * 1.5) z.c = Math.min(1, z.c + dt * 0.55 * (1 - d / (z.r * 1.5)) * 2.2);
-      }
-      z.v = z.h * (1 - z.c);
-      warm = Math.max(warm, z.v);
-    }
-    if (body.heat.every((z) => z.h > 0.95) && warm < 0.06) {
-      loose = true; body.heat.forEach((z) => (z.v = 0)); body.dirty = true;
-      hintEl.textContent = 'Los. Nu nog in het echt.'; hintWrap.classList.add('loose');
-      $$(`button[data-zone="${curId}"]`, listEl).concat($$(`button[data-zone="${curId}"]`, dotsEl)).forEach((b) => b.classList.add('loose'));
-      const lab = zf('label'); lab.textContent = `${cur.label} · los`; lab.classList.add('loose');
-    }
-  };
+  function toggleZone(id) { if (picked.has(id)) picked.delete(id); else picked.add(id); syncZones(); }
 
   function buildZoneUI() {
-    Object.entries(ZONES).forEach(([id, z]) => {
+    dotsEl.innerHTML = ''; listEl.innerHTML = '';
+    Object.entries(ZONES).filter(([, z]) => z.side === side).forEach(([id, z]) => {
       z.spots.forEach(([x, y], i) => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'dot'; b.dataset.zone = id;
         b.style.left = (x / 240) * 100 + '%'; b.style.top = (y / 520) * 100 + '%';
-        b.setAttribute('aria-pressed', 'false');
         if (i) { b.tabIndex = -1; b.setAttribute('aria-hidden', 'true'); } else b.setAttribute('aria-label', z.label);
-        b.addEventListener('click', () => select(id, true));
+        b.addEventListener('click', () => toggleZone(id));
         dotsEl.appendChild(b);
       });
       const li = document.createElement('li'), b = document.createElement('button');
-      b.type = 'button'; b.dataset.zone = id; b.textContent = z.label; b.setAttribute('aria-pressed', 'false');
-      b.addEventListener('click', () => select(id, true));
+      b.type = 'button'; b.dataset.zone = id; b.textContent = z.label;
+      b.addEventListener('click', () => toggleZone(id));
       li.appendChild(b); listEl.appendChild(li);
     });
+    syncZones();
   }
+
+  $$('[data-side]', mapEl).forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.side === side) return;
+    side = b.dataset.side;
+    $$('[data-side]', mapEl).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (mask) layoutBody();
+    buildZoneUI();
+  }));
   buildZoneUI();
   pointerOn(bodyFig, body);
 
@@ -424,7 +400,7 @@
         onUpdate: (st) => { hero.spread = st.progress * 0.9; hero.alpha = introDone ? 1 - st.progress * 0.9 : hero.alpha; hero.dirty = true; } });
       foot.T = 0.85;
       ScrollTrigger.create({ trigger: footMark, start: 'top 85%', once: true,
-        onEnter: () => gsap.to(foot, { T: 0, duration: 2.2, ease: 'power3.inOut' }) });
+        onEnter: () => gsap.to(foot, { T: 0, duration: 1.9, ease: 'power3.inOut' }) }); // same release as the hero intro
     }
   }).catch(() => {});
 
@@ -467,9 +443,9 @@
     $$('.sports li').forEach((li) => ScrollTrigger.create({ trigger: li, start: 'top 72%', onEnter: () => li.classList.add('on'), onLeaveBack: () => li.classList.remove('on') }));
     gsap.fromTo('.glenn-photo img', { clipPath: 'inset(100% 0 0 0)', scale: 1.18 }, { clipPath: 'inset(0% 0 0 0)', scale: 1, duration: 1.5, ease: 'power4.out', scrollTrigger: { trigger: '.glenn-photo', start: 'top 80%' } });
 
-    // Reviews: each quote arrives compressed and in heat colour, and relaxes as it reaches the reader
+    // Reviews: each quote arrives compressed and in brass, and relaxes as it reaches the reader
     $$('.q').forEach((q) => {
-      gsap.fromTo(q, { scaleX: 0.72, color: '#d2552a', opacity: 0.35 }, { scaleX: 1, color: '#efe9dd', opacity: 1, ease: 'none', scrollTrigger: { trigger: q, start: 'top 95%', end: 'top 52%', scrub: 0.6 } });
+      gsap.fromTo(q, { scaleX: 0.72, color: '#c29a55', opacity: 0.35 }, { scaleX: 1, color: '#efe9dd', opacity: 1, ease: 'none', scrollTrigger: { trigger: q, start: 'top 95%', end: 'top 52%', scrub: 0.6 } });
     });
     gsap.from('.foot-cols > div', { opacity: 0, y: 24, duration: 0.9, stagger: 0.1, ease: 'power3.out', scrollTrigger: { trigger: '.foot-cols', start: 'top 90%' } });
   } else {

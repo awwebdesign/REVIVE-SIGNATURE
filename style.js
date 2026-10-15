@@ -13,15 +13,17 @@ function configureScroll() {
   lenis?.destroy();
   lenis = undefined;
   document.documentElement.style.scrollBehavior = '';
-  if (!window.Lenis || motionPreference.matches) return;
+  // Same as the homepage: smooth scroll always on (only ?motion=off turns it off), same lerp feel.
+  if (!window.Lenis || /[?&]motion=off/.test(location.search)) return;
   document.documentElement.style.scrollBehavior = 'auto';
-  lenis = new window.Lenis({ duration: 1.05, smoothWheel: true });
+  lenis = new window.Lenis({ lerp: 0.1, smoothWheel: true });
   if (rvToggle?.getAttribute('aria-expanded') === 'true') lenis.stop();
   const tick = time => { lenis.raf(time); scrollFrame = requestAnimationFrame(tick); };
   scrollFrame = requestAnimationFrame(tick);
 }
 configureScroll();
 motionPreference.addEventListener('change', configureScroll);
+document.addEventListener('revive:menu', event => { if (event.detail.open) lenis?.stop(); else lenis?.start(); });
 
 if (rvNav) {
   const onScroll = () => rvNav.classList.toggle('scrolled', window.scrollY > 40);

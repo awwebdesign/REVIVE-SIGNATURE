@@ -10,7 +10,8 @@
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
   <link rel="preload" href="./assets/revive-mask.webp" as="image" type="image/webp">
   <link rel="stylesheet" href="./assets/fonts/fonts.css">
-  <link rel="stylesheet" href="./sig.css?v=3">
+  <link rel="stylesheet" href="./sig.css?v=5">
+  <link rel="stylesheet" href="./nav.css?v=2">
   <link rel="canonical" href="https://www.revive-massagetherapie.be/">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta property="og:type" content="website">
@@ -67,58 +68,51 @@
   </div>
 </section>
 
-<!-- 02 · Body map: tap where it's stuck, rub it loose. -->
+<!-- 02 · Body map: tap where it's stuck (front or back), then pick one or more treatments. -->
 <section class="map" id="vast" aria-labelledby="map-title">
   <div class="wrap map-grid">
     <header class="map-head">
       <p class="kicker">Voor de sporter. De harde werker. En iedereen die even vastzit.</p>
       <h2 id="map-title" class="h-big">Waar zit het <em>vast?</em></h2>
-      <p class="lede">Tik op de plek waar je het voelt. Dan zie je welke behandeling vaak past.</p>
+      <p class="lede">Duid aan waar je het voelt. Daarna kies je je behandeling.</p>
     </header>
 
     <div class="body-stage">
+      <div class="side-toggle" role="group" aria-label="Kant van het lichaam">
+        <button type="button" data-side="front" aria-pressed="false">Voorkant</button>
+        <button type="button" data-side="back" aria-pressed="true">Achterkant</button>
+      </div>
       <div class="body-fig">
         <canvas class="body-fibers" aria-hidden="true"></canvas>
-        <div class="body-dots" role="group" aria-label="Kies een zone"></div>
+        <div class="body-dots" role="group" aria-label="Zones op het lichaam"></div>
       </div>
-      <p class="body-hint" aria-live="polite"><span data-hint>Kies een zone</span></p>
     </div>
 
-    <div class="zone-panel" aria-live="polite">
-      <div class="zone-empty">
-        <p class="zone-label">Nog niets gekozen</p>
-        <p class="zone-title">Nek, rug, kuiten?</p>
-        <p class="zone-text">Kies een zone op het lichaam of in de lijst. Voel je het op meerdere plekken? Vertel het Glenn bij je afspraak.</p>
+    <div class="map-steps">
+      <div class="step">
+        <h3 class="step-title"><span>1</span>Waar voel je het?</h3>
+        <p class="step-sub">Tik op het lichaam of hieronder. Meerdere plekken mag.</p>
+        <ul class="zone-list" aria-label="Zones"></ul>
       </div>
-      <div class="zone-card" hidden>
-        <p class="zone-label" data-z="label"></p>
-        <p class="zone-title" data-z="title"></p>
-        <dl class="zone-dl">
-          <div><dt>Herkenbaar bij</dt><dd data-z="when"></dd></div>
-          <div><dt>Past vaak bij</dt><dd class="zone-chips" data-z="start"></dd></div>
-        </dl>
-        <blockquote class="zone-quote" data-z="quote" hidden></blockquote>
-      </div>
+
+      <fieldset class="pick step" id="kies">
+        <legend class="step-title"><span>2</span>Welke behandeling?</legend>
+        <p class="step-sub">Duid er gerust meer dan een aan.</p>
+        <div class="pick-grid">
+          <label class="pick-opt"><input type="checkbox" name="behandeling" value="bovenlichaam" data-min="30"><span class="pick-name">Sportmassage bovenlichaam</span><span class="pick-meta">Nek, rug, schouders en armen · 30 min</span><span class="pick-tag" hidden></span></label>
+          <label class="pick-opt"><input type="checkbox" name="behandeling" value="fullbody" data-min="60"><span class="pick-name">Sportmassage full body</span><span class="pick-meta">Van nek tot kuiten · 60 min</span><span class="pick-tag" hidden></span></label>
+          <label class="pick-opt"><input type="checkbox" name="behandeling" value="benen" data-min="30"><span class="pick-name">Sportmassage benen</span><span class="pick-meta">Heupen, hamstrings en kuiten · 30 min</span><span class="pick-tag" hidden></span></label>
+          <label class="pick-opt"><input type="checkbox" name="behandeling" value="deep" data-min="60"><span class="pick-name">Deep tissue</span><span class="pick-meta">Diepe, vastzittende spanning · 60 min</span><span class="pick-tag" hidden></span></label>
+          <label class="pick-opt"><input type="checkbox" name="behandeling" value="cupping" data-min="30"><span class="pick-name">Cupping therapie</span><span class="pick-meta">Spieren en bindweefsel · 30 min</span><span class="pick-tag" hidden></span></label>
+        </div>
+        <div class="pick-foot">
+          <p class="pick-sum" aria-live="polite"><span data-pick-sum>Nog niets aangeduid</span></p>
+          <a class="btn" href="https://booking.optios.net/21985/activities">Plan je afspraak</a>
+        </div>
+      </fieldset>
+
       <p class="zone-note">Dit is geen diagnose. Glenn bespreekt met jou wat past. Bij medische klachten ga je eerst naar je arts.</p>
     </div>
-
-    <ul class="zone-list" aria-label="Zones"></ul>
-
-    <fieldset class="pick" id="kies">
-      <legend class="pick-legend">Wat wil je laten doen?</legend>
-      <p class="pick-sub">Duid gerust meer dan een behandeling aan.</p>
-      <div class="pick-grid">
-        <label class="pick-opt"><input type="checkbox" name="behandeling" value="bovenlichaam" data-min="30"><span class="pick-name">Sportmassage bovenlichaam</span><span class="pick-meta">Nek, rug, schouders en armen · 30 min</span><span class="pick-tag" hidden></span></label>
-        <label class="pick-opt"><input type="checkbox" name="behandeling" value="fullbody" data-min="60"><span class="pick-name">Sportmassage full body</span><span class="pick-meta">Van nek tot kuiten · 60 min</span><span class="pick-tag" hidden></span></label>
-        <label class="pick-opt"><input type="checkbox" name="behandeling" value="benen" data-min="30"><span class="pick-name">Sportmassage benen</span><span class="pick-meta">Heupen, hamstrings en kuiten · 30 min</span><span class="pick-tag" hidden></span></label>
-        <label class="pick-opt"><input type="checkbox" name="behandeling" value="deep" data-min="60"><span class="pick-name">Deep tissue</span><span class="pick-meta">Diepe, vastzittende spanning · 60 min</span><span class="pick-tag" hidden></span></label>
-        <label class="pick-opt"><input type="checkbox" name="behandeling" value="cupping" data-min="30"><span class="pick-name">Cupping therapie</span><span class="pick-meta">Spieren en bindweefsel · 30 min</span><span class="pick-tag" hidden></span></label>
-      </div>
-      <div class="pick-foot">
-        <p class="pick-sum" aria-live="polite"><span data-pick-sum>Nog niets aangeduid</span></p>
-        <a class="btn" href="https://booking.optios.net/21985/activities">Plan je afspraak</a>
-      </div>
-    </fieldset>
   </div>
 </section>
 
@@ -246,6 +240,7 @@
 <script src="./assets/vendor/gsap.min.js" defer></script>
 <script src="./assets/vendor/ScrollTrigger.min.js" defer></script>
 <script src="./assets/vendor/lenis.min.js" defer></script>
-<script src="./sig.js?v=4" defer></script>
+<script src="./nav.js?v=1" defer></script>
+<script src="./sig.js?v=8" defer></script>
 </body>
 </html>
