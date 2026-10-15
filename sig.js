@@ -222,19 +222,19 @@
     return hero.build((c) => c.drawImage(mask, L, T, W, H));
   }
 
-  // The intro is skipped under reduced motion (the rest of the page keeps its motion); ?motion=on forces it.
-  const calmIntro = still || (matchMedia('(prefers-reduced-motion: reduce)').matches && !/[?&]motion=on/.test(location.search));
+  // Under reduced motion the intro is kept to a minimum (short release, no ghost stroke); ?motion=on plays the full one.
+  const calmIntro = matchMedia('(prefers-reduced-motion: reduce)').matches && !/[?&]motion=on/.test(location.search);
 
-  // ~1.4s in total. The tagline and buttons are never hidden, so you can book or scroll straight away.
+  // ~1.4s in total (~0.6s when calm). The tagline and buttons are never hidden, so you can book or scroll straight away.
   function heroIntro() {
-    if (calmIntro || !hasGsap) { hero.T = 0; hero.dirty = true; introDone = true; tensionEl.textContent = '0'; tensionEl.parentElement.classList.add('calm'); return; }
+    if (still || !hasGsap) { hero.T = 0; hero.dirty = true; introDone = true; tensionEl.textContent = '0'; tensionEl.parentElement.classList.add('calm'); return; }
     hero.T = 1; hero.alpha = 0;
     gsap.timeline({ delay: 0.05 })
-      .to(hero, { alpha: 1, duration: 0.45, ease: 'power1.out', onUpdate: () => (hero.dirty = true) })
+      .to(hero, { alpha: 1, duration: calmIntro ? 0.2 : 0.45, ease: 'power1.out', onUpdate: () => (hero.dirty = true) })
       .to(hero, {
-        T: 0, duration: 1.3, ease: 'power3.inOut',
+        T: 0, duration: calmIntro ? 0.6 : 1.3, ease: 'power3.inOut',
         onUpdate: () => { tensionEl.textContent = Math.round(hero.T * 100); },
-        onComplete: () => { tensionEl.parentElement.classList.add('calm'); introDone = true; setTimeout(ghostStroke, 500); },
+        onComplete: () => { tensionEl.parentElement.classList.add('calm'); introDone = true; if (!calmIntro) setTimeout(ghostStroke, 500); },
       }, 0.1);
   }
 
