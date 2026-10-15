@@ -222,19 +222,20 @@
     return hero.build((c) => c.drawImage(mask, L, T, W, H));
   }
 
+  // The intro is skipped under reduced motion (the rest of the page keeps its motion); ?motion=on forces it.
+  const calmIntro = still || (matchMedia('(prefers-reduced-motion: reduce)').matches && !/[?&]motion=on/.test(location.search));
+
+  // ~1.4s in total. The tagline and buttons are never hidden, so you can book or scroll straight away.
   function heroIntro() {
-    const foot = $$('.hero-foot > *, .hero-meta');
-    if (still || !hasGsap) { hero.T = 0; tensionEl.textContent = '0'; tensionEl.parentElement.classList.add('calm'); return; }
+    if (calmIntro || !hasGsap) { hero.T = 0; hero.dirty = true; introDone = true; tensionEl.textContent = '0'; tensionEl.parentElement.classList.add('calm'); return; }
     hero.T = 1; hero.alpha = 0;
-    gsap.set(foot, { opacity: 0, y: 18 });
-    const tl = gsap.timeline({ delay: 0.15 });
-    tl.to(hero, { alpha: 1, duration: 0.9, ease: 'power1.out', onUpdate: () => (hero.dirty = true) })
+    gsap.timeline({ delay: 0.05 })
+      .to(hero, { alpha: 1, duration: 0.45, ease: 'power1.out', onUpdate: () => (hero.dirty = true) })
       .to(hero, {
-        T: 0, duration: 2.7, ease: 'power3.inOut',
+        T: 0, duration: 1.3, ease: 'power3.inOut',
         onUpdate: () => { tensionEl.textContent = Math.round(hero.T * 100); },
-        onComplete: () => { tensionEl.parentElement.classList.add('calm'); introDone = true; setTimeout(ghostStroke, 900); },
-      }, 0.35)
-      .to(foot, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', stagger: 0.08 }, 2.1);
+        onComplete: () => { tensionEl.parentElement.classList.add('calm'); introDone = true; setTimeout(ghostStroke, 500); },
+      }, 0.1);
   }
 
   // If nobody has touched the fibres yet, one slow stroke shows that they can be pressed.
@@ -242,7 +243,7 @@
     if (userPressed || !hero.box) return;
     const { L, W } = hero.box, p = { v: 0 };
     gsap.to(p, {
-      v: 1, duration: 1.9, ease: 'sine.inOut',
+      v: 1, duration: 1.4, ease: 'sine.inOut',
       onUpdate: () => { if (!userPressed) hero.press(L + W * (0.04 + 0.92 * p.v), hero.cy + Math.sin(p.v * Math.PI * 2.5) * hero.box.H * 0.18); },
     });
   }
@@ -255,22 +256,38 @@
 
   /* ---------------------------------------------------------------- 02 body map */
   const ZONES = {
-    nek: { label: 'Nek', title: 'Vast in je nek?', when: 'Lange dagen achter een scherm, stress die zich vastzet, zwaar trek- en duwwerk.', fit: ['sportmassage', 'deep-tissue'], quote: ['Geblokkeerde schouder/nek volledig verholpen.', 'Kim d’Haenens'], spots: [[120, 76]], r: 20 },
-    schouders: { label: 'Schouders', title: 'Vast in je schouders?', when: 'Overhead trainen, zwemmen, vechtsport of werken boven je hoofd.', fit: ['sportmassage', 'cupping'], quote: ['Geblokkeerde schouder/nek volledig verholpen.', 'Kim d’Haenens'], spots: [[68, 122], [172, 122]], r: 24 },
-    bovenrug: { label: 'Bovenrug', title: 'Vast tussen je schouderbladen?', when: 'Veel zitten, rijden of tillen, en een houding die je de hele dag aanhoudt.', fit: ['deep-tissue', 'cupping'], spots: [[120, 158]], r: 32 },
-    onderrug: { label: 'Onderrug', title: 'Vast in je onderrug?', when: 'Tillen op de werf, deadlifts, lang rechtstaan of net lang stilzitten.', fit: ['deep-tissue', 'sportmassage'], quote: ['Sinds ik mijn rug laat behandelen gaat alles stukken beter.', 'Mille Pelacuer'], spots: [[120, 234]], r: 32 },
-    heupen: { label: 'Heupen & bilspieren', title: 'Vast in je heupen?', when: 'Lopen, fietsen, squatten of uren in de auto.', fit: ['sportmassage', 'deep-tissue'], spots: [[98, 292], [142, 292]], r: 26 },
-    hamstrings: { label: 'Hamstrings', title: 'Vast achter je dijen?', when: 'Sprinten, voetbal, lopen, en spieren die kort aanvoelen na een dag zitten.', fit: ['sportmassage'], spots: [[97, 362], [143, 362]], r: 24 },
-    kuiten: { label: 'Kuiten', title: 'Vast in je kuiten?', when: 'Kilometers lopen, springen of de hele dag rechtstaan.', fit: ['sportmassage', 'cupping'], spots: [[94, 440], [146, 440]], r: 21 },
-    onderarmen: { label: 'Onderarmen', title: 'Vast in je onderarmen?', when: 'Grip en klimwerk, gereedschap, typen en de muis.', fit: ['sportmassage', 'deep-tissue'], spots: [[25, 252], [215, 252]], r: 19 },
+    nek: { label: 'Nek', title: 'Vast in je nek?', when: 'Lange dagen achter een scherm, stress die zich vastzet, zwaar trek- en duwwerk.', fit: ['bovenlichaam', 'deep'], quote: ['Geblokkeerde schouder/nek volledig verholpen.', 'Kim d’Haenens'], spots: [[120, 76]], r: 20 },
+    schouders: { label: 'Schouders', title: 'Vast in je schouders?', when: 'Overhead trainen, zwemmen, vechtsport of werken boven je hoofd.', fit: ['bovenlichaam', 'cupping'], quote: ['Geblokkeerde schouder/nek volledig verholpen.', 'Kim d’Haenens'], spots: [[68, 122], [172, 122]], r: 24 },
+    bovenrug: { label: 'Bovenrug', title: 'Vast tussen je schouderbladen?', when: 'Veel zitten, rijden of tillen, en een houding die je de hele dag aanhoudt.', fit: ['bovenlichaam', 'deep', 'cupping'], spots: [[120, 158]], r: 32 },
+    onderrug: { label: 'Onderrug', title: 'Vast in je onderrug?', when: 'Tillen op de werf, deadlifts, lang rechtstaan of net lang stilzitten.', fit: ['deep', 'fullbody'], quote: ['Sinds ik mijn rug laat behandelen gaat alles stukken beter.', 'Mille Pelacuer'], spots: [[120, 234]], r: 32 },
+    heupen: { label: 'Heupen & bilspieren', title: 'Vast in je heupen?', when: 'Lopen, fietsen, squatten of uren in de auto.', fit: ['benen', 'fullbody'], spots: [[98, 292], [142, 292]], r: 26 },
+    hamstrings: { label: 'Hamstrings', title: 'Vast achter je dijen?', when: 'Sprinten, voetbal, lopen, en spieren die kort aanvoelen na een dag zitten.', fit: ['benen'], spots: [[97, 362], [143, 362]], r: 24 },
+    kuiten: { label: 'Kuiten', title: 'Vast in je kuiten?', when: 'Kilometers lopen, springen of de hele dag rechtstaan.', fit: ['benen', 'cupping'], spots: [[94, 440], [146, 440]], r: 21 },
+    onderarmen: { label: 'Onderarmen', title: 'Vast in je onderarmen?', when: 'Grip en klimwerk, gereedschap, typen en de muis.', fit: ['bovenlichaam'], spots: [[25, 252], [215, 252]], r: 19 },
   };
-  const TNAME = { sportmassage: 'Sportmassage', 'deep-tissue': 'Deep tissue', cupping: 'Cupping' };
   const bodyFig = $('.body-fig'), bodyCv = $('.body-fibers'), dotsEl = $('.body-dots'), listEl = $('.zone-list');
   const hintEl = $('[data-hint]'), hintWrap = $('.body-hint');
   const body = new Fibers(bodyCv, { rgb: [227, 200, 143] });
   const panelEmpty = $('.zone-empty'), card = $('.zone-card'), zf = (k) => $(`[data-z="${k}"]`, card);
   const rub = fine ? 'Masseer het los met je muis' : 'Wrijf het los met je vinger';
   let cur = null, curId = null, loose = false;
+
+  // treatment picker: checkboxes, so two or more can be chosen; the zone only suggests
+  const pickEl = $('.pick'), pickSum = $('[data-pick-sum]');
+  const pickBox = (k) => $(`input[value="${k}"]`, pickEl);
+  const PNAME = Object.fromEntries($$('input', pickEl).map((i) => [i.value, $('.pick-name', i.parentElement).textContent]));
+  function syncPick() {
+    const on = $$('input', pickEl).filter((i) => i.checked);
+    $$('input', pickEl).forEach((i) => {
+      const tag = $('.pick-tag', i.parentElement), fits = !!cur && cur.fit.includes(i.value);
+      tag.hidden = !fits; if (fits) tag.textContent = `Past bij ${cur.label.toLowerCase()}`;
+    });
+    $$('button[data-pick]', card).forEach((b) => b.setAttribute('aria-pressed', String(pickBox(b.dataset.pick).checked)));
+    const min = on.reduce((t, i) => t + +i.dataset.min, 0);
+    pickSum.textContent = on.length ? `${on.length} aangeduid · ${min} min${on.length > 1 ? ' · in de agenda boek je ze na elkaar' : ''}` : 'Nog niets aangeduid';
+    pickEl.classList.toggle('has', on.length > 0);
+  }
+  pickEl.addEventListener('change', syncPick);
 
   function drawBody(c, w) {
     const s = w / 240;
@@ -323,10 +340,11 @@
     zf('label').textContent = cur.label;
     zf('title').textContent = cur.title;
     zf('when').textContent = cur.when;
-    zf('start').innerHTML = cur.fit.map((k) => `<a href="#${k}">${TNAME[k]}</a>`).join('');
+    zf('start').innerHTML = cur.fit.map((k) => `<button type="button" data-pick="${k}">${PNAME[k]}</button>`).join('');
     const q = zf('quote');
     if (cur.quote) { q.hidden = false; q.innerHTML = `“${cur.quote[0]}”<cite>${cur.quote[1]} · Google-review</cite>`; } else q.hidden = true;
-    zf('start').querySelectorAll('a').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); scrollToHash(a.getAttribute('href')); }));
+    zf('start').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { const i = pickBox(b.dataset.pick); i.checked = !i.checked; syncPick(); }));
+    syncPick();
     panelEmpty.hidden = true; card.hidden = false;
     card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter');
     hintEl.textContent = still ? cur.label : rub; hintWrap.classList.remove('loose');
