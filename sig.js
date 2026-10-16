@@ -1,7 +1,7 @@
 /* Revive · signature build
    One idea runs through the page: vast → los.
-   A shared canvas "fibre" renderer draws shapes (the wordmark, a body) as rows of muscle fibre.
-   Fibres can be knotted (tension), pushed by the pointer (pressure) and heated (a sore zone). */
+   A shared canvas "fibre" renderer draws the wordmark as rows of muscle fibre: knotted (tension), pushed by the pointer (pressure).
+   Section 02 draws the body as contour lines with a renderer that plugs into the same loop. */
 (() => {
   const html = document.documentElement;
   const still = html.classList.contains('still');
@@ -239,51 +239,52 @@
     heroEl.addEventListener('pointerdown', mark, { passive: true });
   }
 
-  /* ---------------------------------------------------------------- 02 body map */
-  // Two steps: tap where it's stuck (front or back, one or more zones), then tick one or more treatments.
-  // Zones only suggest; nothing is chosen for the visitor.
-  const ZONES = {
-    nek: { side: 'back', label: 'Nek', fit: ['bovenlichaam', 'deep'], spots: [[120, 76]], r: 20 },
-    schouders: { side: 'back', label: 'Schouders', fit: ['bovenlichaam', 'cupping'], spots: [[68, 122], [172, 122]], r: 24 },
-    bovenrug: { side: 'back', label: 'Bovenrug', fit: ['bovenlichaam', 'deep', 'cupping'], spots: [[120, 158]], r: 32 },
-    onderrug: { side: 'back', label: 'Onderrug', fit: ['deep', 'fullbody'], spots: [[120, 234]], r: 32 },
-    bilspieren: { side: 'back', label: 'Bilspieren', fit: ['benen', 'fullbody'], spots: [[98, 292], [142, 292]], r: 26 },
-    hamstrings: { side: 'back', label: 'Hamstrings', fit: ['benen'], spots: [[97, 362], [143, 362]], r: 24 },
-    kuiten: { side: 'back', label: 'Kuiten', fit: ['benen', 'cupping'], spots: [[94, 440], [146, 440]], r: 21 },
-    onderarmen: { side: 'back', label: 'Onderarmen', fit: ['bovenlichaam'], spots: [[25, 252], [215, 252]], r: 19 },
-    borst: { side: 'front', label: 'Borst', fit: ['bovenlichaam'], spots: [[96, 148], [144, 148]], r: 26 },
-    voorschouders: { side: 'front', label: 'Voorkant schouders', fit: ['bovenlichaam', 'cupping'], spots: [[62, 124], [178, 124]], r: 20 },
-    armen: { side: 'front', label: 'Armen', fit: ['bovenlichaam'], spots: [[40, 174], [200, 174]], r: 18 },
-    buik: { side: 'front', label: 'Buik & core', fit: ['fullbody'], spots: [[120, 222]], r: 28 },
-    heupbuigers: { side: 'front', label: 'Heupbuigers', fit: ['benen', 'deep'], spots: [[100, 278], [140, 278]], r: 20 },
-    bovenbenen: { side: 'front', label: 'Bovenbenen', fit: ['benen', 'fullbody'], spots: [[97, 352], [143, 352]], r: 24 },
-    scheenbenen: { side: 'front', label: 'Scheenbenen', fit: ['benen'], spots: [[95, 442], [145, 442]], r: 18 },
+  /* ---------------------------------------------------------------- 02 waar zit het vast: five panels */
+  // Five tall close-ups of the body (front or back), drawn as contour lines like a relief map.
+  // The panel you point at (or tap) widens, its zone turns gold and it shows the treatments that suit it.
+  // Treatments can be combined; the choice is guidance only (Optios opens without a preselection).
+  // Zone copy is our wording: check it with Glenn.
+  const TREAT = {
+    bovenlichaam: { name: 'Sportmassage bovenlichaam', min: 30 },
+    fullbody: { name: 'Sportmassage full body', min: 60 },
+    benen: { name: 'Sportmassage benen', min: 30 },
+    deep: { name: 'Deep tissue', min: 60 },
+    cupping: { name: 'Cupping therapie', min: 30 },
   };
-  const mapEl = $('.map'), bodyFig = $('.body-fig'), bodyCv = $('.body-fibers'), dotsEl = $('.body-dots'), listEl = $('.zone-list');
-  const body = new Fibers(bodyCv, { rgb: [150, 143, 131] });
-  const picked = new Set();
-  let side = 'back';
+  const T_ORDER = ['bovenlichaam', 'fullbody', 'benen', 'deep', 'cupping'];
+  // zone spots in a 240×520 figure space
+  const ZONES = {
+    nek: { spots: [[120, 76]], r: 20 }, schouders: { spots: [[68, 122], [172, 122]], r: 24 },
+    bovenrug: { spots: [[120, 158]], r: 32 }, onderrug: { spots: [[120, 234]], r: 32 },
+    onderarmen: { spots: [[25, 252], [215, 252]], r: 19 }, bilspieren: { spots: [[98, 292], [142, 292]], r: 26 },
+    hamstrings: { spots: [[97, 362], [143, 362]], r: 24 }, kuiten: { spots: [[94, 440], [146, 440]], r: 21 },
+    voorschouders: { spots: [[62, 124], [178, 124]], r: 20 }, borst: { spots: [[96, 148], [144, 148]], r: 26 },
+    armen: { spots: [[40, 174], [200, 174]], r: 18 }, buik: { spots: [[120, 222]], r: 28 },
+    heupbuigers: { spots: [[100, 278], [140, 278]], r: 20 }, bovenbenen: { spots: [[97, 352], [143, 352]], r: 24 },
+    scheenbenen: { spots: [[95, 442], [145, 442]], r: 18 },
+  };
+  // view = horizontal centre of the crop in figure space, span = how much figure height fits in a panel
+  const PANELS = {
+    front: [
+      { label: 'Borst & schouders', copy: 'Bankdrukken, zwemmen, duwen of veel achter het stuur.', fit: ['bovenlichaam', 'cupping'], zones: ['voorschouders', 'borst'], view: 120, span: 210 },
+      { label: 'Armen', copy: 'Krachttraining, tillen, dragen en grijpen.', fit: ['bovenlichaam', 'fullbody'], zones: ['armen'], view: 42, span: 220 },
+      { label: 'Buik & core', copy: 'Core-training, roeien, veel draaien en buigen.', fit: ['fullbody', 'deep'], zones: ['buik'], view: 120, span: 210 },
+      { label: 'Heupbuigers', copy: 'Lang zitten, sprinten of fietsen.', fit: ['benen', 'deep'], zones: ['heupbuigers'], view: 120, span: 210 },
+      { label: 'Benen', copy: 'Bovenbenen en schenen na fietsen, squatten of hardlopen op harde grond.', fit: ['benen', 'fullbody'], zones: ['bovenbenen', 'scheenbenen'], view: 120, span: 230 },
+    ],
+    back: [
+      { label: 'Nek & schouders', copy: 'Schermwerk, stress, zwemmen of tillen boven je hoofd.', fit: ['bovenlichaam', 'cupping', 'deep'], zones: ['nek', 'schouders'], view: 120, span: 190 },
+      { label: 'Rug', copy: 'Lang voorovergebogen zitten, tillen of zwaar fysiek werk.', fit: ['bovenlichaam', 'deep', 'fullbody'], zones: ['bovenrug', 'onderrug'], view: 120, span: 210 },
+      { label: 'Armen', copy: 'Grijpen, klimmen, judo of werken met je handen.', fit: ['bovenlichaam', 'fullbody'], zones: ['onderarmen'], view: 40, span: 230 },
+      { label: 'Heupen & bilspieren', copy: 'Lopen, fietsen, zware squats of uren stilzitten.', fit: ['benen', 'deep', 'fullbody'], zones: ['bilspieren'], view: 120, span: 200 },
+      { label: 'Benen', copy: 'Hamstrings en kuiten na het lopen, voetbal of een dag rechtstaan.', fit: ['benen', 'cupping'], zones: ['hamstrings', 'kuiten'], view: 120, span: 230 },
+    ],
+  };
+  const FIRST = { front: 0, back: 1 };
 
-  // treatment picker: checkboxes, so two or more can be chosen
-  const pickEl = $('.pick'), pickSum = $('[data-pick-sum]');
-  function syncPick() {
-    const zones = [...picked].map((id) => ZONES[id]);
-    $$('input', pickEl).forEach((i) => {
-      const tag = $('.pick-tag', i.parentElement), hits = zones.filter((z) => z.fit.includes(i.value)).map((z) => z.label.toLowerCase());
-      tag.hidden = !hits.length; if (hits.length) tag.textContent = `Past bij ${hits.join(', ')}`;
-    });
-    const on = $$('input', pickEl).filter((i) => i.checked), min = on.reduce((t, i) => t + +i.dataset.min, 0);
-    const parts = [];
-    if (zones.length) parts.push(zones.map((z) => z.label).join(', '));
-    if (on.length) parts.push(`${on.length} ${on.length > 1 ? 'behandelingen' : 'behandeling'} · ${min} min`);
-    pickSum.textContent = parts.join(' · ') || 'Nog niets aangeduid';
-    pickEl.classList.toggle('has', on.length > 0);
-  }
-  pickEl.addEventListener('change', syncPick);
-
-  function drawBody(c, w) {
-    const s = w / 240;
-    c.save(); c.scale(s, s);
+  // the figure as a white mask (k = scale to px, tx/ty = offset in px)
+  function drawBody(c, side, k, tx, ty) {
+    c.save(); c.translate(tx, ty); c.scale(k, k);
     c.fillStyle = c.strokeStyle = '#fff'; c.lineCap = 'round';
     const cap = (x1, y1, x2, y2, r) => { c.lineWidth = r * 2; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); };
     const ell = (x, y, rx, ry) => { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, 7); c.fill(); };
@@ -305,7 +306,6 @@
       cap(120, 282, 120, 326, 1.2);
       both((m) => curve(m, 86, 130, 80, 162, 102, 180));
     } else {
-      // collarbones, the line under the chest, centre line of the belly
       both((m) => curve(m, 112, 104, 88, 100, 64, 112));
       both((m) => curve(m, 70, 152, 90, 184, 118, 172));
       cap(120, 120, 120, 168, 0.9);
@@ -314,59 +314,206 @@
     c.restore();
   }
 
-  // the chosen zones on the visible side glow brass
-  function setHeat() {
-    const s = body.s;
-    body.heat = [...picked].map((id) => ZONES[id]).filter((z) => z.side === side)
-      .flatMap((z) => z.spots.map(([x, y]) => ({ x: x * s, y: y * s, r: z.r * s, v: 1 })));
-    body.dirty = true;
-    if (still && html.classList.contains('fib-ready')) body.draw(0);
+  // Contour renderer: same interface as Fibers (size, build, heat, press, needs, draw) so the shared loop drives it.
+  // A distance field (how deep each point lies inside the body) is cut into iso-lines with marching squares.
+  const C_BASE = [150, 143, 131], C_BONE = [239, 233, 221], C_GOLD = [227, 176, 92];
+  const cmix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const MS = [[], [[3, 0]], [[0, 1]], [[3, 1]], [[1, 2]], [[3, 0], [1, 2]], [[0, 2]], [[3, 2]], [[2, 3]], [[0, 2]], [[0, 1], [2, 3]], [[1, 2]], [[1, 3]], [[0, 1]], [[3, 0]], []];
+  class Contour {
+    constructor(canvas) { this.cv = canvas; this.ctx = canvas.getContext('2d'); this.heat = []; this.trail = []; this.dirty = true; this.w = 0; this.h = 0; }
+    size() {
+      const r = this.cv.getBoundingClientRect();
+      this.w = Math.round(r.width); this.h = Math.round(r.height);
+      this.cv.width = this.w * DPR; this.cv.height = this.h * DPR;
+      this.ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    build(drawMask) {
+      const { w, h } = this, cell = 3;
+      if (!w || !h) return false;
+      const off = document.createElement('canvas');
+      off.width = w; off.height = h;
+      const c = off.getContext('2d', { willReadFrequently: true });
+      drawMask(c);
+      let data;
+      try { data = c.getImageData(0, 0, w, h).data; } catch (e) { return false; }
+      const cols = Math.ceil(w / cell) + 1, rows = Math.ceil(h / cell) + 1, d = new Float32Array(cols * rows), S = Math.SQRT2;
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) d[j * cols + i] = data[(Math.min(h - 1, j * cell) * w + Math.min(w - 1, i * cell)) * 4 + 3] > 110 ? 1e9 : 0;
+      // two-pass chamfer distance, then two 3×3 box passes against the pixel staircase
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+        const k = j * cols + i; let v = d[k]; if (!v) continue;
+        if (i > 0) v = Math.min(v, d[k - 1] + 1);
+        if (j > 0) { v = Math.min(v, d[k - cols] + 1); if (i > 0) v = Math.min(v, d[k - cols - 1] + S); if (i < cols - 1) v = Math.min(v, d[k - cols + 1] + S); }
+        d[k] = v;
+      }
+      for (let j = rows - 1; j >= 0; j--) for (let i = cols - 1; i >= 0; i--) {
+        const k = j * cols + i; let v = d[k]; if (!v) continue;
+        if (i < cols - 1) v = Math.min(v, d[k + 1] + 1);
+        if (j < rows - 1) { v = Math.min(v, d[k + cols] + 1); if (i < cols - 1) v = Math.min(v, d[k + cols + 1] + S); if (i > 0) v = Math.min(v, d[k + cols - 1] + S); }
+        d[k] = v;
+      }
+      for (let k = 0; k < d.length; k++) d[k] = d[k] > 1e8 ? 0 : d[k] * cell;
+      const tmp = new Float32Array(d.length);
+      for (let pass = 0; pass < 2; pass++) {
+        for (let j = 1; j < rows - 1; j++) for (let i = 1; i < cols - 1; i++) {
+          const k = j * cols + i;
+          tmp[k] = (d[k - cols - 1] + d[k - cols] + d[k - cols + 1] + d[k - 1] + d[k] + d[k + 1] + d[k + cols - 1] + d[k + cols] + d[k + cols + 1]) / 9;
+        }
+        for (let j = 1; j < rows - 1; j++) for (let i = 1; i < cols - 1; i++) d[j * cols + i] = tmp[j * cols + i];
+      }
+      const L = Math.max(6, Math.round(h / 80)), first = cell * 0.9, segs = [], lev = [];
+      const lerp = (a, b, v) => (b === a ? 0.5 : (v - a) / (b - a));
+      for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) {
+        const k = j * cols + i, v0 = d[k], v1 = d[k + 1], v2 = d[k + cols + 1], v3 = d[k + cols], hi = Math.max(v0, v1, v2, v3);
+        if (hi < first) continue;
+        const lo = Math.min(v0, v1, v2, v3), x0 = i * cell, y0 = j * cell;
+        for (let n = Math.max(0, Math.ceil((lo - first) / L)); first + n * L <= hi; n++) {
+          const lv = first + n * L, cs = (v0 > lv) | ((v1 > lv) << 1) | ((v2 > lv) << 2) | ((v3 > lv) << 3);
+          if (!cs || cs === 15) continue;
+          const pt = (e) => (e === 0 ? [x0 + cell * lerp(v0, v1, lv), y0] : e === 1 ? [x0 + cell, y0 + cell * lerp(v1, v2, lv)] : e === 2 ? [x0 + cell * lerp(v3, v2, lv), y0 + cell] : [x0, y0 + cell * lerp(v0, v3, lv)]);
+          for (const [a, b] of MS[cs]) { const p = pt(a), q = pt(b); segs.push(p[0], p[1], q[0], q[1]); lev.push(n); }
+        }
+      }
+      this.segs = new Float32Array(segs); this.lev = lev; this.R = Math.max(50, h * 0.12); this.dirty = true;
+      return true;
+    }
+    hv(x, y) {
+      let m = 0;
+      for (const z of this.heat) { if (z.v <= 0.004) continue; const dx = x - z.x, dy = y - z.y; m = Math.max(m, Math.exp(-(dx * dx + dy * dy) / (z.r * z.r * 1.6)) * z.v); }
+      return Math.min(1, m * 1.5);
+    }
+    pv(x, y) {
+      let m = 0; const R = this.R;
+      for (const p of this.trail) { const dx = x - p.x, dy = y - p.y; if (dx > R || dx < -R || dy > R || dy < -R) continue; m = Math.max(m, Math.exp(-(dx * dx + dy * dy) / (R * R * 0.25)) * p.life); }
+      return m;
+    }
+    press(x, y) {
+      const tr = this.trail, l = tr[tr.length - 1];
+      if (l && Math.hypot(l.x - x, l.y - y) < 5) return;
+      tr.push({ x, y, life: 1 });
+      if (tr.length > 24) tr.shift();
+    }
+    needs() { return this.dirty || this.trail.length > 0; }
+    draw(dt) {
+      const tr = this.trail, had = tr.length;
+      for (let i = tr.length - 1; i >= 0; i--) { tr[i].life -= dt * 1.5; if (tr[i].life <= 0) tr.splice(i, 1); }
+      this.dirty = had > 0 && tr.length === 0;
+      const { ctx, segs, lev } = this;
+      ctx.clearRect(0, 0, this.w, this.h);
+      if (!segs) return;
+      // bucket segments by tone (outline / gold heat / pointer) so each tone is one stroke
+      const buckets = new Map();
+      for (let s = 0, n = lev.length; s < n; s++) {
+        const mx = (segs[s * 4] + segs[s * 4 + 2]) / 2, my = (segs[s * 4 + 1] + segs[s * 4 + 3]) / 2;
+        const key = Math.round(this.hv(mx, my) * 6) * 100 + (tr.length ? Math.round(this.pv(mx, my) * 4) : 0) * 10 + (lev[s] === 0 ? 1 : 0);
+        let b = buckets.get(key); if (!b) buckets.set(key, (b = []));
+        b.push(segs[s * 4], segs[s * 4 + 1], segs[s * 4 + 2], segs[s * 4 + 3]);
+      }
+      ctx.lineCap = 'round';
+      for (const [key, b] of buckets) {
+        const hq = Math.floor(key / 100), pq = Math.floor(key / 10) % 10, oq = key % 10;
+        const col = cmix(cmix(cmix(C_BASE, C_BONE, oq ? 0.45 : 0), C_GOLD, hq / 6), C_BONE, (pq / 4) * 0.8);
+        ctx.strokeStyle = `rgb(${col[0] | 0},${col[1] | 0},${col[2] | 0})`;
+        ctx.lineWidth = oq ? 1.5 : 1.1 + hq * 0.14;
+        ctx.beginPath();
+        for (let i = 0; i < b.length; i += 4) { ctx.moveTo(b[i], b[i + 1]); ctx.lineTo(b[i + 2], b[i + 3]); }
+        ctx.stroke();
+      }
+    }
   }
 
-  function layoutBody() {
-    body.size();
-    const gap = Math.max(3, Math.round(body.w / 82));
-    Object.assign(body.o, { gap, step: 3, lw: Math.max(0.9, gap * 0.42), radius: Math.max(26, body.w * 0.11), push: Math.max(4, body.w * 0.02) });
-    body.s = body.w / 240;
-    const ok = body.build((c, w) => drawBody(c, w));
-    setHeat();
+  // treatment menu: all five items, the ones that suit the zone marked; two or more is fine
+  const chosen = new Set();
+  const menuHTML = (fit, label) => `<div class="rv-menu"><p class="rv-menu-k"><span>Kies je behandeling</span><span class="rv-menu-fit">past bij ${label.toLowerCase()}</span></p><ul>`
+    + T_ORDER.map((id) => `<li><button type="button" class="rv-opt${fit.includes(id) ? ' fit' : ''}" data-t="${id}" aria-pressed="${chosen.has(id)}"><span class="rv-n">${TREAT[id].name}</span><small>${TREAT[id].min} min</small><i aria-hidden="true"></i></button></li>`).join('')
+    + '</ul></div>';
+  const mapEl = $('.vc'), row = $('.vc-row', mapEl), trayEl = $('.rv-tray', mapEl), sumEl = $('[data-rv-sum]', mapEl);
+  function syncMenus() {
+    $$('.rv-opt', mapEl).forEach((b) => b.setAttribute('aria-pressed', String(chosen.has(b.dataset.t))));
+    const on = T_ORDER.filter((id) => chosen.has(id)), min = on.reduce((t, id) => t + TREAT[id].min, 0);
+    sumEl.textContent = on.length ? `${on.map((id) => TREAT[id].name).join(' + ')} · ${min} min` : 'Nog niets gekozen. Meerdere mag.';
+    trayEl.classList.toggle('has', on.length > 0);
+  }
+  mapEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.rv-opt');
+    if (!b) return;
+    if (chosen.has(b.dataset.t)) chosen.delete(b.dataset.t); else chosen.add(b.dataset.t);
+    syncMenus();
+  });
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  let side = 'front', panels = [], panelsReady = false, panelsWatched = false;
+
+  function buildPanels() {
+    row.innerHTML = '';
+    panels = PANELS[side].map((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'vc-panel';
+      el.innerHTML = `<canvas aria-hidden="true"></canvas><button class="vc-hit" type="button" aria-expanded="false" aria-label="${p.label}"></button>`
+        + `<span class="vc-no" aria-hidden="true">${pad2(i + 1)}</span><span class="vc-label" aria-hidden="true">${p.label}</span>`
+        + `<div class="vc-body"><h3>${p.label}</h3><p>${p.copy}</p>${menuHTML(p.fit, p.label)}</div>`;
+      row.appendChild(el);
+      const it = { p, el, f: new Contour($('canvas', el)), k: 1, tx: 0, ty: 0, v: 0 };
+      if (fine) el.addEventListener('pointerenter', () => openPanel(i));
+      $('.vc-hit', el).addEventListener('click', () => openPanel(i));
+      pointerOn(el, it.f);
+      return it;
+    });
+  }
+
+  function panelHeat(it) {
+    it.f.heat = it.v > 0.004 ? it.p.zones.flatMap((id) => ZONES[id].spots.map(([x, y]) => ({ x: x * it.k + it.tx, y: y * it.k + it.ty, r: ZONES[id].r * it.k, v: it.v }))) : [];
+    it.f.dirty = true;
+    if (still && html.classList.contains('fib-ready')) it.f.draw(0);
+  }
+
+  function openPanel(i) {
+    panels.forEach((it, j) => {
+      const on = j === i, to = on ? 1 : 0;
+      it.el.classList.toggle('on', on);
+      $('.vc-hit', it.el).setAttribute('aria-expanded', String(on));
+      $('.vc-body', it.el).toggleAttribute('inert', !on);
+      if (hasGsap && !still) gsap.to(it, { v: to, duration: on ? 0.9 : 0.4, delay: on ? 0.25 : 0, ease: 'power2.out', overwrite: 'auto', onUpdate: () => panelHeat(it) });
+      else { it.v = to; panelHeat(it); }
+    });
+  }
+
+  // every canvas is drawn at the panel's OPEN size and centred, so widening only reveals more of it;
+  // the zone sits in the top quarter, clear of the text in the lower half of an open panel
+  function layoutPanels() {
+    const mobile = innerWidth <= 760, rw = row.clientWidth, gap = 10, n = panels.length;
+    const W = mobile ? rw : Math.round(((rw - gap * (n - 1)) * 3.4) / (3.4 + n - 1));
+    const H = mobile ? Math.round(Math.min(640, innerHeight * 0.88)) : row.clientHeight;
+    let ok = true;
+    panels.forEach((it) => {
+      it.f.cv.style.width = W + 'px'; it.f.cv.style.height = H + 'px';
+      it.f.size();
+      const k = H / it.p.span, fy = it.p.zones.reduce((t, id) => t + ZONES[id].spots[0][1], 0) / it.p.zones.length;
+      it.k = k; it.tx = W / 2 - it.p.view * k; it.ty = H * 0.25 - fy * k;
+      ok = it.f.build((c) => drawBody(c, side, k, it.tx, it.ty)) && ok;
+      panelHeat(it);
+    });
+    panelsReady = true;
     return ok;
   }
 
-  function syncZones() {
-    $$('button[data-zone]', mapEl).forEach((b) => b.setAttribute('aria-pressed', String(picked.has(b.dataset.zone))));
-    setHeat(); syncPick();
+  function setSide(next) {
+    if (next === side) return;
+    $$('[data-side]', mapEl).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.side === next)));
+    $('.vc-side', mapEl).dataset.on = next;
+    const swap = () => {
+      side = next;
+      buildPanels(); openPanel(FIRST[next]);
+      if (panelsReady) layoutPanels();
+      if (panelsWatched) panels.forEach((it) => watch(it.f));
+      if (still) panels.forEach((it) => it.f.draw(0));
+    };
+    if (!hasGsap || still) { swap(); return; }
+    gsap.timeline()
+      .to(panels.map((it) => it.el), { opacity: 0, y: 14, duration: 0.28, ease: 'power2.in', stagger: 0.03 })
+      .add(() => { swap(); gsap.fromTo(panels.map((it) => it.el), { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out', stagger: 0.05 }); });
   }
-  function toggleZone(id) { if (picked.has(id)) picked.delete(id); else picked.add(id); syncZones(); }
-
-  function buildZoneUI() {
-    dotsEl.innerHTML = ''; listEl.innerHTML = '';
-    Object.entries(ZONES).filter(([, z]) => z.side === side).forEach(([id, z]) => {
-      z.spots.forEach(([x, y], i) => {
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'dot'; b.dataset.zone = id;
-        b.style.left = (x / 240) * 100 + '%'; b.style.top = (y / 520) * 100 + '%';
-        if (i) { b.tabIndex = -1; b.setAttribute('aria-hidden', 'true'); } else b.setAttribute('aria-label', z.label);
-        b.addEventListener('click', () => toggleZone(id));
-        dotsEl.appendChild(b);
-      });
-      const li = document.createElement('li'), b = document.createElement('button');
-      b.type = 'button'; b.dataset.zone = id; b.textContent = z.label;
-      b.addEventListener('click', () => toggleZone(id));
-      li.appendChild(b); listEl.appendChild(li);
-    });
-    syncZones();
-  }
-
-  $$('[data-side]', mapEl).forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.side === side) return;
-    side = b.dataset.side;
-    $$('[data-side]', mapEl).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    if (mask) layoutBody();
-    buildZoneUI();
-  }));
-  buildZoneUI();
-  pointerOn(bodyFig, body);
+  $$('[data-side]', mapEl).forEach((b) => b.addEventListener('click', () => setSide(b.dataset.side)));
+  buildPanels(); openPanel(FIRST.front); syncMenus();
 
   /* ---------------------------------------------------------------- 07 footer wordmark */
   const footMark = $('.foot-mark'), footCv = $('.foot-fibers'), footStatic = $('.foot-static');
@@ -383,7 +530,7 @@
 
   /* ---------------------------------------------------------------- boot */
   function layoutAll() {
-    const ok = layoutHero() & layoutBody() & layoutFoot();
+    const ok = layoutHero() & layoutPanels() & layoutFoot();
     return ok;
   }
   loadMask().then(async (img) => {
@@ -391,8 +538,8 @@
     if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) { /* fonts optional */ } }
     if (!layoutAll()) return; // canvas unreadable (file://): the flat wordmarks stay visible
     html.classList.add('fib-ready');
-    [hero, body, foot].forEach(watch);
-    if (still) { [hero, body, foot].forEach((f) => f.draw(0)); return; }
+    [hero, foot].forEach(watch); panels.forEach((it) => watch(it.f)); panelsWatched = true;
+    if (still) { [hero, foot, ...panels.map((it) => it.f)].forEach((f) => f.draw(0)); return; }
     requestAnimationFrame(loop);
     heroIntro();
     if (hasGsap && window.ScrollTrigger) {
@@ -409,7 +556,7 @@
     if (Math.abs(innerWidth - lastW) < 2 && innerWidth <= 900) return; // mobile URL bar
     lastW = innerWidth;
     clearTimeout(window.__rz);
-    window.__rz = setTimeout(() => { if (mask) { layoutAll(); [hero, body, foot].forEach((f) => (f.dirty = true)); if (still) [hero, body, foot].forEach((f) => f.draw(0)); } if (window.ScrollTrigger) ScrollTrigger.refresh(); }, 160);
+    window.__rz = setTimeout(() => { if (mask) { layoutAll(); [hero, foot].forEach((f) => (f.dirty = true)); if (still) [hero, foot, ...panels.map((it) => it.f)].forEach((f) => f.draw(0)); } if (window.ScrollTrigger) ScrollTrigger.refresh(); }, 160);
   });
 
   /* ---------------------------------------------------------------- 03 treatments: the cup */
@@ -436,6 +583,7 @@
       if (h.closest('.hero')) return;
       gsap.from(h, { yPercent: 18, opacity: 0, duration: 1.1, ease: 'power3.out', scrollTrigger: { trigger: h, start: 'top 88%' } });
     });
+    gsap.from('.vc-panel', { opacity: 0, y: 40, duration: 1, ease: 'power3.out', stagger: 0.08, scrollTrigger: { trigger: '.vc-row', start: 'top 80%' } });
     gsap.from('.t-row', { opacity: 0, y: 40, duration: 1, ease: 'power3.out', stagger: 0.12, scrollTrigger: { trigger: '.t-rows', start: 'top 82%' } });
     gsap.from('.first-steps li', { opacity: 0, y: 24, duration: 0.9, ease: 'power3.out', stagger: 0.1, scrollTrigger: { trigger: '.first', start: 'top 85%' } });
 
